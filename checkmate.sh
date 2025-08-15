@@ -279,3 +279,57 @@ clear_student_records() {
     $DIALOG_TOOL --title "Success" --msgbox "All student records have been cleared!" 8 40
     show_main_menu
 }
+
+# ====================================================
+# Function: Mark attendance (Simplified version)
+# ====================================================
+mark_attendance() {
+    # Check if there are any students
+    if [ ! -s "$STUDENTS_FILE" ]; then
+        $DIALOG_TOOL --title "Error" --msgbox "No students found!" 8 40
+        show_main_menu
+        return
+    fi
+    
+    # Check if there are any courses
+    if [ ! -s "$COURSES_FILE" ]; then
+        $DIALOG_TOOL --title "Error" --msgbox "No courses found! Please add a course first." 8 50
+        show_main_menu
+        return
+    fi
+    
+    # Use today's date
+    formatted_date=$(date +%Y-%m-%d)
+    
+    # Show available courses
+    > /tmp/course_display
+    echo "Available Courses" >> /tmp/course_display
+    echo "---------------------------------" >> /tmp/course_display
+    echo "Code  | Course Name" >> /tmp/course_display
+    echo "---------------------------------" >> /tmp/course_display
+    
+    while IFS=: read -r code name; do
+        printf "%-6s| %s\n" "$code" "$name" >> /tmp/course_display
+    done < "$COURSES_FILE"
+    
+    $DIALOG_TOOL --title "Mark Attendance" \
+        --textbox /tmp/course_display 20 60
+    
+    # Get course code
+    $DIALOG_TOOL --title "Mark Attendance" \
+        --inputbox "Enter Course Code:" 8 40 2> /tmp/course_code
+    
+    if [ $? -ne 0 ]; then
+        show_main_menu
+        return
+    fi
+    
+    course_code=$(cat /tmp/course_code)
+    rm -f /tmp/course_code
+    
+    # Check if course exists
+    if ! grep -q "^$course_code:" "$COURSES_FILE"; then
+        $DIALOG_TOOL --title "Error" --msgbox "Course code not found in the system!" 8 40
+        show_main_menu
+        return
+    fi
